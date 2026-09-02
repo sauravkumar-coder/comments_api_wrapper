@@ -2,7 +2,7 @@ services:
   - type: web
     name: rm-quality-api
     env: docker
-    plan: standard # The BGE model and PyTorch require at least 2GB RAM
+    plan: free # Note: The free plan has 512MB RAM, which might cause OOM crashes with PyTorch/BGE models
     region: oregon
     healthCheckPath: /health
     envVars:
@@ -12,3 +12,5 @@ services:
         value: 10000
       - key: PORT # Render uses the PORT environment variable
         value: 10000
+      - key: RM_HF_TOKEN
+        sync: false # Requires you to manually set this in the Render dashboard

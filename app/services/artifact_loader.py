@@ -148,12 +148,10 @@ class ArtifactManager:
         ref_path = art / "embedding_model_reference.txt"
         self.embedding_model_name = ref_path.read_text(encoding="utf-8").strip()
         logger.info("Embedding model name: %s", self.embedding_model_name)
-
-        # Load the actual sentence-transformer model
-        from sentence_transformers import SentenceTransformer
-        logger.info("Loading embedding model (may download on first run) …")
-        self.embedding_model = SentenceTransformer(self.embedding_model_name)
-        logger.info("Embedding model loaded successfully.")
+        
+        # We no longer load the model locally via sentence_transformers.
+        # It will be called remotely via Hugging Face Inference API.
+        self.embedding_model = None
 
         # ── 6. Load label mapping ────────────────────────────────────────
         mapping_path = art / "label_mapping.json"

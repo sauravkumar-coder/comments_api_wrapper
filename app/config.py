@@ -23,6 +23,12 @@ class Settings(BaseSettings):
         description="Absolute path to the directory containing model artifacts.",
     )
 
+    # ── Hugging Face ─────────────────────────────────────────────────────
+    hf_token: str | None = Field(
+        default=None,
+        description="Hugging Face API token for embedding generation via Inference API.",
+    )
+
     # ── API Security ─────────────────────────────────────────────────────
     api_key: str = Field(
         default="",

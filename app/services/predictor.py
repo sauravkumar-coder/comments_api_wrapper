@@ -51,41 +51,67 @@ class RemarkQualityEngine:
 
     # ── Embedding + PCA ───────────────────────────────────────────────────
 
+    def _get_hf_embeddings(self, texts: List[str]) -> np.ndarray:
+        """Fetch embeddings from Hugging Face Inference API and L2-normalize them."""
+        from app.config import get_settings
+        import httpx
+        
+        settings = get_settings()
+        token = settings.hf_token
+        if not token:
+            raise RuntimeError("HF_TOKEN is not set in environment or config. Cannot fetch embeddings.")
+            
+        model_id = self._am.embedding_model_name
+        # Note: We use router.huggingface.co/hf-inference/models/ instead of api-inference.huggingface.co 
+        # to avoid DNS resolution/blocking issues common with some ISPs.
+        api_url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        payload = {"inputs": texts, "options": {"wait_for_model": True}}
+        
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(api_url, headers=headers, json=payload)
+            response.raise_for_status()
+            
+        data = response.json()
+        embeddings = np.array(data)
+        
+        # Ensure 2D array
+        if embeddings.ndim == 1:
+            embeddings = embeddings.reshape(1, -1)
+        elif embeddings.ndim == 3:
+            # Some feature extraction pipelines return (batch, seq_len, hidden)
+            # We want the sentence embedding. BGE models usually pool to (batch, hidden).
+            # If we got 3D, we'll pool by averaging (as fallback).
+            embeddings = embeddings.mean(axis=1)
+            
+        # L2 Normalize (mimics normalize_embeddings=True)
+        norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+        norms = np.where(norms == 0, 1e-10, norms)
+        normalized_embeddings = embeddings / norms
+        
+        return normalized_embeddings
+
     def _embed_single(self, cleaned_text: str) -> np.ndarray:
         """
-        Generate a 1024-dim sentence embedding and PCA-reduce to 247 dims.
-
-        CRITICAL: ``normalize_embeddings=True`` must match training.
+        Generate a 1024-dim sentence embedding via HF API and PCA-reduce to 247 dims.
         """
-        # 1024-dim embedding
-        embedding = self._am.embedding_model.encode(
-            [cleaned_text],
-            normalize_embeddings=True,
-            show_progress_bar=False,
-        )[0]  # shape: (1024,)
-
-        # PCA → 247-dim
-        embedding_pca = self._am.pca.transform(
-            embedding.reshape(1, -1)
-        )[0]  # shape: (247,)
-
-        return embedding_pca
+        embeddings = self._get_hf_embeddings([cleaned_text])
+        return self._am.pca.transform(embeddings)[0]
 
     def _embed_batch(self, cleaned_texts: List[str]) -> np.ndarray:
         """
-        Batch-embed and PCA-transform multiple texts at once.
-
-        Returns shape (n, 247).
+        Batch-embed via HF API and PCA-transform multiple texts at once.
         """
-        embeddings = self._am.embedding_model.encode(
-            cleaned_texts,
-            normalize_embeddings=True,
-            show_progress_bar=False,
-            batch_size=64,
-        )  # shape: (n, 1024)
-
-        embeddings_pca = self._am.pca.transform(embeddings)  # shape: (n, 247)
-        return embeddings_pca
+        batch_size = 32
+        all_embeddings = []
+        for i in range(0, len(cleaned_texts), batch_size):
+            chunk = cleaned_texts[i:i+batch_size]
+            emb_chunk = self._get_hf_embeddings(chunk)
+            all_embeddings.append(emb_chunk)
+            
+        embeddings = np.vstack(all_embeddings)
+        return self._am.pca.transform(embeddings)
 
     # ── Assemble feature row ──────────────────────────────────────────────
 
