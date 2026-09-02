@@ -12,5 +12,3 @@ services:
         value: 10000
       - key: PORT # Render uses the PORT environment variable
         value: 10000
-      - key: RM_HF_TOKEN
-        sync: false # Requires you to manually set this in the Render dashboard
