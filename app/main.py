@@ -12,12 +12,14 @@ Architecture:
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi.routing import APIRoute
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
@@ -116,6 +118,26 @@ async def lifespan(app: FastAPI):
 #  FastAPI app
 # ═══════════════════════════════════════════════════════════════════════════════
 
+class RelaxedJSONRoute(APIRoute):
+    """
+    Custom route class that allows JSON payloads to contain unescaped 
+    newlines (literal line breaks) by parsing with strict=False.
+    """
+    def get_route_handler(self):
+        original_route_handler = super().get_route_handler()
+
+        async def custom_route_handler(request: Request):
+            content_type = request.headers.get("content-type", "")
+            if content_type.startswith("application/json"):
+                body = await request.body()
+                try:
+                    request._json = json.loads(body, strict=False)
+                except Exception:
+                    pass
+            return await original_route_handler(request)
+
+        return custom_route_handler
+
 settings = get_settings()
 
 app = FastAPI(
@@ -132,6 +154,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+app.router.route_class = RelaxedJSONRoute
 
 # ── Middleware ────────────────────────────────────────────────────────────
 app.add_middleware(
