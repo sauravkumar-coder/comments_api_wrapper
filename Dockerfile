@@ -26,6 +26,11 @@ FROM python:3.10-slim AS runtime
 
 WORKDIR /app
 
+# Install runtime dependencies (OpenMP for LightGBM/XGBoost)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
