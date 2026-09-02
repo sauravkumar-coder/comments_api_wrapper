@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: rm-quality-api
+    env: docker
+    plan: standard # The BGE model and PyTorch require at least 2GB RAM
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: RM_API_KEY
+        generateValue: true # Generates a random API key for you automatically
+      - key: RM_PORT
+        value: 10000
+      - key: PORT # Render uses the PORT environment variable
+        value: 10000

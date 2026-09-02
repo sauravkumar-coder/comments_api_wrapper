@@ -1,0 +1,26 @@
+# ============================================================================
+#  RM Remark Quality API — Python Dependencies
+# ============================================================================
+#  Pin scikit-learn to 1.6.1 to match the version used to train pca_model.pkl.
+#  A version mismatch may cause deserialization warnings or subtle errors.
+# ============================================================================
+
+# ── Web Framework ────────────────────────────────────────────────────────
+fastapi>=0.111.0,<1.0
+uvicorn[standard]>=0.30.0,<1.0
+pydantic>=2.0,<3.0
+pydantic-settings>=2.0,<3.0
+python-dotenv>=1.0.0,<2.0
+
+# ── ML / Model ───────────────────────────────────────────────────────────
+scikit-learn==1.6.1
+joblib>=1.3.0,<2.0
+lightgbm>=4.0.0,<5.0
+xgboost>=2.0.0,<3.0
+catboost>=1.2,<2.0
+numpy>=1.22.0,<2.0
+pandas>=2.0.0,<3.0
+
+# ── Embeddings ───────────────────────────────────────────────────────────
+sentence-transformers>=2.7.0,<4.0
+torch>=2.0.0

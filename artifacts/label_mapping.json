@@ -1,0 +1,18 @@
+{
+  "bins": [
+    0,
+    40,
+    70,
+    100
+  ],
+  "labels": [
+    "Trash",
+    "Average",
+    "Good"
+  ],
+  "rules": {
+    "Trash": "0-40",
+    "Average": "41-70",
+    "Good": "71-100"
+  }
+}
